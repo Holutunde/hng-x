@@ -8,10 +8,10 @@ app.use(express.json());
 // Define the endpoint
 app.get("/api", (req, res) => {
   const { slack_name, track } = req.query;
+  const utc_time = new Date().toISOString();
   const currentDay = new Date().toLocaleDateString("en-US", {
     weekday: "long",
   });
-  const utc_time = new Date().toISOString();
 
   const response = {
     slack_name,

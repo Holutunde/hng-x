@@ -28,3 +28,6 @@ The project is structured as follows:
 
    ```bash
    npm install
+
+### UML  Diagram link
+https://lucid.app/documents/view/af26394a-f680-4cd9-a2b2-2b7612b6aec3

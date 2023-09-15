@@ -1,35 +1,30 @@
+// app.js
+require("dotenv").config();
 const express = require("express");
+const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
 const app = express();
-const port = 3000;
+const notFound = require("./errors/notFound");
+const connectDB = require("./database/db");
+const port = process.env.PORT;
 
-// Middleware to parse JSON request bodies
-app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Define the endpoint
-app.get("/api", (req, res) => {
-  const { slack_name, track } = req.query;
-  const currentUTC = new Date();
-  const currentDay = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-  });
+// Routes
+const personRoutes = require("./server/routes/person");
+app.use("/api", personRoutes);
+app.use(notFound);
 
-  // Format the UTC time to include "Z" at the end
-  const utc_time = currentUTC.toISOString().slice(0, -5) + "Z";
+const start = async () => {
+  try {
+    await connectDB(process.env.MONGO_URI);
+    app.listen(port, () =>
+      console.log(`Server is listening on port ${port}...`)
+    );
+  } catch (error) {
+    console.log(error);
+  }
+};
 
-  const response = {
-    slack_name,
-    current_day: currentDay,
-    utc_time,
-    track,
-    github_file_url: "https://github.com/Holutunde/hng-x.git/index.js",
-    github_repo_url: "https://github.com/Holutunde/hng-x.git",
-    status_code: 200,
-  };
-
-  res.json(response);
-});
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+start();

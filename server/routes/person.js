@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Person = require("../model/person");
+const { StatusCodes } = require("http-status-codes");
 const Joi = require("joi");
+const mongoose = require("mongoose");
 
 const personSchema = Joi.object({
   name: Joi.string().required(),
@@ -14,67 +16,43 @@ router.post("/", async (req, res) => {
   if (error) {
     return res.status(400).json({
       success: false,
-      msg: "name does not meet validation",
+      msg: "name does not meet validation, should be string only",
     });
   }
   const person = new Person(req.body);
-  try {
-    await person.save();
-    res.status(201).json({
-      success: true,
-      msg: "Person created successfully",
-      person: person,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      msg: "Failed to create person",
-    });
-  }
-});
-
-// Read all persons
-router.get("/persons", async (req, res) => {
-  try {
-    const persons = await Person.find();
-    res.status(200).json({
-      success: true,
-      persons: persons,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      msg: "Failed to fetch persons",
-    });
-  }
+  await person.save();
+  res.status(200).json({
+    success: true,
+    msg: "Person created successfully",
+    person: person,
+  });
 });
 
 // Read a person by ID
 router.get("/:user_id", async (req, res) => {
   const personId = req.params.user_id;
-  try {
-    const person = await Person.findById(personId);
-    if (!person) {
-      return res.status(404).json({
-        success: false,
-        msg: "Person not found",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      person: person,
-    });
-  } catch (error) {
-    res.status(500).json({
+  // Check if the provided ID is a valid ObjectId
+  if (!mongoose.Types.ObjectId.isValid(req.params.user_id)) {
+    return res.status(400).json({
       success: false,
-      msg: "Failed to fetch person",
+      msg: `Person with id ${personId} does not exit`,
     });
   }
+
+  const person = await Person.findById(personId);
+  res.status(StatusCodes.OK).json({ person });
 });
 
 // Update a person by ID
 router.patch("/:user_id", async (req, res) => {
   const personId = req.params.user_id;
+
+  if (!mongoose.Types.ObjectId.isValid(req.params.user_id)) {
+    return res.status(400).json({
+      success: false,
+      msg: `Person with id ${personId} does not exit`,
+    });
+  }
   const updates = Object.keys(req.body);
   const allowedUpdates = ["name"];
   const isValidOperation = updates.every((update) =>
@@ -88,54 +66,35 @@ router.patch("/:user_id", async (req, res) => {
     });
   }
 
-  try {
-    const person = await Person.findByIdAndUpdate(personId, req.body, {
-      new: true,
-      runValidators: true,
-    });
+  const person = await Person.findByIdAndUpdate(personId, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
-    if (!person) {
-      return res.status(404).json({
-        success: false,
-        msg: "Person not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      msg: "Person updated successfully",
-      person: person,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      msg: "Failed to update person",
-    });
-  }
+  res.status(200).json({
+    success: true,
+    msg: "Person updated successfully",
+    person: person,
+  });
 });
 
 // Delete a person by ID
 router.delete("/:user_id", async (req, res) => {
   const personId = req.params.user_id;
-  try {
-    const person = await Person.findByIdAndDelete(personId);
-    if (!person) {
-      return res.status(404).json({
-        success: false,
-        msg: "Person not found",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      msg: "Person deleted successfully",
-      person: person,
-    });
-  } catch (error) {
-    res.status(500).json({
+
+  if (!mongoose.Types.ObjectId.isValid(req.params.user_id)) {
+    return res.status(400).json({
       success: false,
-      msg: "Failed to delete person",
+      msg: `Person with id ${personId} does not exit`,
     });
   }
+  const person = await Person.findByIdAndDelete(personId);
+
+  res.status(200).json({
+    success: true,
+    msg: "Person deleted successfully",
+    person: person,
+  });
 });
 
 module.exports = router;
